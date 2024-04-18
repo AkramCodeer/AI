@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
@@ -6,10 +7,10 @@ const App = () => {
   const [username, setUsername] = useState('');
   const [userData, setUserData] = useState([]);
   const [error, setError] = useState('');
-  const [viewDetails, setViewDetails] = useState(false); // State variable to track if user details are being viewed
+  const [viewDetails, setViewDetails] = useState(false);
+  const [mutualFollowers, setMutualFollowers] = useState([]);
 
   useEffect(() => {
-    // Fetch initial data from the API
     fetchData();
   }, []);
 
@@ -40,7 +41,12 @@ const App = () => {
       const response = await axios.get(`https://api.github.com/users/${user.login}`);
       setUserData([response.data]);
       setError('');
-      setViewDetails(true); // Set viewDetails to true to indicate that user details are being viewed
+      setViewDetails(true);
+      // Fetch mutual followers
+      const mutualFollowersResponse = await axios.get(`https://api.github.com/users/${user.login}/followers`);
+      // Filter mutual followers by the searched username
+      const filteredMutualFollowers = mutualFollowersResponse.data.filter(follower => follower.login.includes(username));
+      setMutualFollowers(filteredMutualFollowers);
     } catch (error) {
       console.error('Error fetching user details:', error);
       setError('Failed to fetch user details');
@@ -54,7 +60,7 @@ const App = () => {
 
   const handleDelete = async (username) => {
     try {
-      await axios.delete(`https://api.github.com/users/${username}`);
+      await axios.delete(`http://localhost:5000/api/users/${username}`);
       setUserData([]);
       setError('');
       setViewDetails(false); // Hide user details after deletion
@@ -67,7 +73,7 @@ const App = () => {
 
   const handleUpdate = async (username, updateData) => {
     try {
-      await axios.put(`https://api.github.com/users/${username}`, updateData);
+      await axios.put(`http://localhost:5000/api/users/${username}`, updateData);
       setError('');
       fetchData(); // Fetch updated data after update
     } catch (error) {
@@ -103,14 +109,22 @@ const App = () => {
       {viewDetails && userData.length > 0 && (
         <div className="user-details">
           <button onClick={handleBack}>Back</button>
-          <h2>{userData[0].name}</h2>
-          <p>Username: {userData[0].login}</p>
-          <p>Bio: {userData[0].bio}</p>
-          <p>Location: {userData[0].location}</p>
-          <p>Followers: {userData[0].followers}</p>
-          <p>Following: {userData[0].following}</p>
-          <p>Public Repositories: {userData[0].public_repos}</p>
-          <p>Created At: {new Date(userData[0].created_at).toLocaleDateString()}</p>
+          <div className="info-container">
+            <h2>{userData[0].name}</h2>
+            <p>Username: {userData[0].login}</p>
+            <p>Bio: {userData[0].bio}</p>
+            <p>Location: {userData[0].location}</p>
+            <p>Followers: {userData[0].followers}</p>
+            <p>Following: {userData[0].following}</p>
+            <p>Public Repositories: {userData[0].public_repos}</p>
+            <p>Created At: {new Date(userData[0].created_at).toLocaleDateString()}</p>
+            <h3>Mutual Followers:</h3>
+            <ul>
+              {mutualFollowers.map(follower => (
+                <li key={follower.id}>{follower.login}</li>
+              ))}
+            </ul>
+          </div>
           <button onClick={() => handleDelete(userData[0].login)}>Delete</button>
           {/* Update form */}
           <div className="update-form">
